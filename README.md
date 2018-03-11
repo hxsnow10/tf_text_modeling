@@ -53,6 +53,7 @@ It seems i can't auto-test all config parameters for composability.
 So i give some examples, every example share basic process:
 0. python train.py -i example_configs/config[x].py 
 1. nohup tensorboad --logdir logdir &  : keep log watching
+
 you should try change the config.
 
 #### Simple Topic Tagging

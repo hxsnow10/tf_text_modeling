@@ -1,0 +1,14 @@
+biology
+economics
+art
+business
+entertainment
+science
+global
+creativity
+culture
+design
+politics
+health
+education
+technology
