@@ -133,6 +133,7 @@ def main():
         # use tf.name_scope to manager variable_names
         model=TextModel(
             configp=config,
+            vocab_size=len(data.words),
             num_classes=len(data.tags), 
             init_emb=word_emb,
             sub_init_emb=char_emb,
@@ -153,6 +154,7 @@ def main():
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--config_path", default=".")
+    parser.add_argument("-r", "--restore", type=bool, default=True)
     args = parser.parse_args()
     global config
     config=load_config(args.config_path)

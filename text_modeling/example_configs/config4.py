@@ -27,9 +27,9 @@ def get_config():
     class Config():
         # ---------------- part1: data -----------------
         # use for SA
-        tags_path="data/w2v/tags.txt"
+        tags_path="data/w2v/vocab.txt"
         train_paths=["data/w2v/train.txt"]
-        dev_paths=["data/w2v/dev.txt"]
+        # dev_paths=["data/w2v/dev.txt"]
 
         data_type="w2v"
         train_samples=sum(sum(1 for line in open(path)) for path in train_paths)
@@ -39,23 +39,13 @@ def get_config():
         # vec
         tok='word'# word, char, word_char
         _words_vec = _chars_vec = None
-        _words_vec=Vec( 
-            vec_path='data/en/word_vec.txt',
+        _words_vec=Vec(
+            vec_path=None,
             trainable=True,
-            vocab_path='data/en/word_vec.txt',
-            vocab_skip_head=True,
+            vocab_path='data/w2v/vocab.txt',
+            vocab_skip_head=False,
             max_vocab_size=200000,
-            vec_size=None)
-        # if no init vec, it should has vec_size and vocab_path at least
-        '''
-        _chars_vec=Vec(
-            vec_path='en/char_vec.txt',
-            trainable=True,
-            vocab_path='en/char_vec.txt',
-            vocab_skip_head=True,
-            max_vocab_size=200000,
-            vec_size=None)
-        '''
+            vec_size=300)
         char_len=10
         if tok=='word':# word vec as word_vec
             split=' '
@@ -77,8 +67,8 @@ def get_config():
             char_filter_nums=[100,100,100] 
 
         # text_model
-        seq_len=200
-        text_model='cnn'
+        seq_len=1
+        text_model='None'
         # add, add-idf; cnn, rnn, birnn, rnn_attn, cnn_rnn, rnn_cnn
         # TODO: hs_rnn_attn, denpendency
         if 'add' in text_model or 'rnn' in text_model:
@@ -106,9 +96,12 @@ def get_config():
             attn_type='attn' in text_model
         
         # last layer
-        tag_exclusive=False
-        use_label_weights=True
-        loss_type=''
+        use_label_weights=False
+        objects="tag"
+        sampled=True
+        tag_exclusive=True
+        num_true=1
+        num_sampled=5
 
         # regulization
         dropout_ratio=0.5
@@ -116,7 +109,7 @@ def get_config():
         l2_lambda=0.001
         
         # ----------------------- part3: train control -----------------
-        learning_method="adam_decay"
+        learning_method="adam"
         learning_rate=0.001
         start_learning_rate=0.003
         decay_rate=0.75
@@ -139,8 +132,8 @@ def get_config():
         z=locals()
         suffix=str(exp_id)+'-'.join(["{}={}".format(name, z.get(name, None)) for name in super_params])
         del z
-        model_dir='./w2v/model'+suffix
-        summary_dir='./w2v/log'+suffix
+        model_dir='./RESULT/w2v/model'+suffix
+        summary_dir='./RESULT/w2v/log'+suffix
         model_path=os.path.join(model_dir,'model')
     return Config
 

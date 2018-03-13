@@ -100,6 +100,7 @@ def get_config():
         tag_exclusive=True
         use_label_weights=True
         crf=False
+        sampled=False
         loss_type=''
 
         # regulization

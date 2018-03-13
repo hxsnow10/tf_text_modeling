@@ -120,6 +120,7 @@ def get_config():
         tag_exclusive=False
         use_label_weights=True
         loss_type=''
+        sampled=False
 
         # regulization
         dropout_ratio=0.5

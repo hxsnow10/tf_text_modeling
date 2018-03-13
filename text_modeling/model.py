@@ -52,10 +52,13 @@ class TextModel(object):
             self.build_outputs()
             self.build_others()
 
-            
     def build_inputs(self):
         if config.objects=="tag":
-            self.input_y = tf.placeholder(tf.int64, [None, self.num_classes], name="input_y")
+            if not config.sampled:
+                self.input_y = tf.placeholder(tf.int64, [None, self.num_classes], name="input_y")
+            else:
+                self.input_y = tf.placeholder(tf.int64, [None, config.num_true], name="input_y")
+                
         elif config.objects=="seq_tag":
             self.input_y = tf.placeholder(tf.int64, [None, config.seq_len], name="input_y")
 
@@ -79,16 +82,15 @@ class TextModel(object):
 
     def build_embeddings(self):
         # Embedding layer
-        # tf not allowed init value of any tensor >2G
-        def build_emb(init_emb, name):
+        # tf not allowed init value of any tensor >2G, use multi tensor and paration
+        def build_emb(init_emb, name, shape=None):
             if init_emb is not None:
                 init_emb=tf.constant(init_emb, dtype=tf.float32)
+                W = tf.get_variable(name, initializer=init_emb, trainable=True)
             else:
-                pass
-                # init_emb=np.array
-            W = tf.get_variable(name, initializer=init_emb, trainable=True)
+                W = tf.get_variable(name, shape = shape, initializer = tf.contrib.layers.xavier_initializer(uniform = False))
             return W
-        self.word_W=build_emb(self.init_emb, "word_W")
+        self.word_W=build_emb(self.init_emb, "word_W", [self.vocab_size, config.words_vec.vec_size])
         self.words_vec = tf.cast(tf.nn.embedding_lookup(self.word_W, self.input_x), tf.float32)
         self.vec_size=config.words_vec.vec_size
         if config.tok=="word_char":
@@ -175,7 +177,9 @@ class TextModel(object):
             self.repr_size=sum(config.filter_nums)
         elif 'rnn' in config.text_model:
             self.repr_size=config.cell_size if not config.bi else 2*config.cell_size
-             
+        else:
+            self.repr_size=config.words_vec.vec_size
+        
         if config.objects=="tag":
             with tf.name_scope("dropout"):
                 self.sent_vec = tf.nn.dropout(self.sent_vec, self.dropout_keep_prob)
@@ -238,13 +242,9 @@ class TextModel(object):
             self.class_accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), axis = 0, name="class_accuracy")
         # tf.summary.scalar("accuracy", self.accuracy)
 
-    def build_noexclusive_sampled_outputs(self, inputs, num_classes):
+    def build_weighted_sampled_outputs(self, inputs, num_classes):
         with tf.name_scope("output"):
-            #weights = tf.get_variable("weights",shape=[num_classes, sum(self.num_filters)],dtype=tf.float32,\
-            #        initializer=tf.contrib.layers.xavier_initializer())
-            #biases = tf.get_variable("biases",shape=[num_classes], dtype=tf.float32,\
-            #        initializer=tf.constant_initializer(0.2))
-            weights = tf.get_variable("weights",shape=[num_classes, self.repr_len],dtype=tf.float32)
+            weights = tf.get_variable("weights",shape=[num_classes, self.repr_size],dtype=tf.float32)
             biases = tf.get_variable("biases",shape=[num_classes], dtype=tf.float32)
             tf.summary.histogram('weights',weights)
             tf.summary.histogram('biases',biases)
@@ -264,15 +264,22 @@ class TextModel(object):
             self.output_values, self.ouput_indexs = tf.nn.top_k(logits, config.topn)
 
         with tf.name_scope("score"):
-            self.score = self.loss/tf.cast(self.batch_size, tf.float32)
+            self.scores = self.loss/tf.cast(self.batch_size, tf.float32)
             #self.accuracy = tf.reduce_sum( self.top_prob )
    
         tf.summary.scalar('loss', self.loss)
     
-    def build_noexclusive_sigmoid_outputs(self, inputs, num_classes):
-        self.scores = tf.layers.dense(inputs, num_classes, name="dense", reuse=self.reuse)
-        pass
-
+    def build_sampled_outputs(self, inputs, num_classes, exclusive):
+        weights = tf.get_variable("weights",shape=[num_classes, self.repr_size],dtype=tf.float32)
+        biases = tf.get_variable("biases",shape=[num_classes], dtype=tf.float32)
+        if config.tag_exclusive:
+            losses=tf.nn.sampled_softmax_loss(weights, biases, self.input_y, inputs, config.num_sampled, num_classes, num_true=1, partition_strategy="div")
+        else:
+            losses=tf.nn.nec_loss(weights, biases, self.input_y, inputs, config.num_sampled, num_classes, num_true=1, partition_strategy="div")
+        self.loss=tf.reduce_sum(losses)
+        self.scores= tf.nn.bias_add(tf.matmul(inputs, tf.transpose(weights)), biases)
+        self.output_values, self.ouput_indexs = tf.nn.top_k(self.scores, 2)
+        
     def build_seq_tag_ouptuts(self, inputs, num_classes):
         ntime_steps = tf.shape(inputs)[1]
         vec_len=tf.shape(inputs)[-1]
@@ -303,7 +310,9 @@ class TextModel(object):
     
     def build_outputs(self):
         if config.objects=="tag":
-            if config.tag_exclusive:
+            if config.sampled:
+                self.build_sampled_outputs(self.sent_vec, self.num_classes, config.tag_exclusive)
+            elif config.tag_exclusive:
                 self.build_exclusive_ouputs(self.sent_vec, self.num_classes)
             else:
                 self.build_nonexclusive_outputs(self.sent_vec, self.num_classes)
@@ -345,7 +354,7 @@ class TextModel(object):
         self.train_vars=[x for x in self.all_vars if x in tf.trainable_variables()]
         self.all_saver=tf.train.Saver(self.all_vars)
         self.train_saver = tf.train.Saver(self.train_vars)
-        print 'ALL VAR:\n\t', '\n\t'.join(str(x) for x in self.all_saver._var_list)
+        # print 'ALL VAR:\n\t', '\n\t'.join(str(x) for x in self.all_saver._var_list)
         print 'TRAIN VAR:\n\t', '\n\t'.join(str(x) for x in self.train_saver._var_list)
         print 'INPUTS:\n\t', '\n\t'.join(str(x) for x in self.inputs)
         print 'OUTPUTS:\n\t', '\n\t'.join(str(x) for x in self.outputs)

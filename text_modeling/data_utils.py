@@ -2,13 +2,13 @@
 import argparse
 from data_loaders import *
 
-def load_data(config, mode="train"):
+def load_data(config):
     if config.data_type=="ner":
-        return load_data_ner(config, mode)
+        return load_data_ner(config)
     elif config.data_type=="w2v":
-        return load_data_w2v(config, mode)
+        return load_data_w2v(config)
     else:
-        return load_data_clf(config, mode)
+        return load_data_clf(config)
 
 if __name__=="__main__":
     from tf_utils import load_config

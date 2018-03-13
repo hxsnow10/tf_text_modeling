@@ -78,7 +78,7 @@ def get_config():
 
         # text_model
         seq_len=200
-        text_model='birnn'
+        text_model='birnn_attn'
         # add, add-idf; cnn, rnn, birnn, rnn_attn, cnn_rnn, rnn_cnn
         # TODO: hs_rnn_attn, denpendency
         if 'add' in text_model or 'rnn' in text_model:
@@ -110,6 +110,7 @@ def get_config():
         tag_exclusive=True
         use_label_weights=True
         loss_type=''
+        sampled=False
 
         # regulization
         dropout_ratio=0.5

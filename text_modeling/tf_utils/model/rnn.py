@@ -34,17 +34,17 @@ def rnn_func(inputs, rnn_cell='lstm', cell_size=300, rnn_layer_num=1,
         outputs, state = tf.nn.dynamic_rnn(
                 cell,
                 inputs, sequence_length=sequence_length, dtype=tf.float32)
-    if not attn_type:
-        return outputs
-    else:
-        W=tf.get_variable("attn_W",shape=[cell_size, cell_size], dtype=tf.float32)
-        batch_size=tf.shape(outputs)[0]
-        seq_len=tf.shape(outputs)[1]
+    return outputs
 
-        outputs_=tf.reshape(outputs, [-1, cell_size])
-        u=tf.matmul(outputs_, W)
-        # u=tf.reshape(u,[batch_size,seq_len,-1])
-        alpha=tf.reshape(tf.multiply(u,u),[batch_size,seq_len,-1])
-        alpha=tf.nn.softmax(tf.reduce_sum(alpha,axis=-1))
-        outputs=tf.reduce_sum(tf.multiply(tf.expand_dims(alpha,-1),outputs),-2)
-        return outputs
+def attn_add(outputs):
+    W=tf.get_variable("attn_W",shape=[cell_size, cell_size], dtype=tf.float32)
+    batch_size=tf.shape(outputs)[0]
+    seq_len=tf.shape(outputs)[1]
+
+    outputs_=tf.reshape(outputs, [-1, cell_size])
+    u=tf.matmul(outputs_, W)
+    # u=tf.reshape(u,[batch_size,seq_len,-1])
+    alpha=tf.reshape(tf.multiply(u,u),[batch_size,seq_len,-1])
+    alpha=tf.nn.softmax(tf.reduce_sum(alpha,axis=-1))
+    outputs=tf.reduce_sum(tf.multiply(tf.expand_dims(alpha,-1),outputs),-2)
+    return outputs
