@@ -78,7 +78,7 @@ def get_config():
 
         # text_model
         seq_len=200
-        text_model='birnn_attn'
+        text_model='cnn'
         # add, add-idf; cnn, rnn, birnn, rnn_attn, cnn_rnn, rnn_cnn
         # TODO: hs_rnn_attn, denpendency
         if 'add' in text_model or 'rnn' in text_model:

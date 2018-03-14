@@ -12,8 +12,9 @@ cpu_conf = tf.ConfigProto(
 def cpu_sess():
     return tf.Session(config=cpu_conf)
 
-def check_dir(dir_path, ask_for_del=False):
+def check_dir(dir_path, ask_for_del=False, restore=True):
     if os.path.exists(dir_path):
+        if restore:return
         y=''
         if ask_for_del:
             y=raw_input('new empty {}? y/n:'.format(dir_path))

@@ -86,7 +86,7 @@ def train(sess, model, train_data, dev_data=None, summary_writers={}, tags=None)
             step+=1
             # eval every batch
         if dev_data:
-            _,train_data_metrics = evaluate(sess,model,train_data,tags)
+            _,train_data_metrics = evaluate(sess,model,train_data,tags)#_,{"f":0.8, "r":0.9}
             score,dev_data_metrics = evaluate(sess,model,dev_data,tags)
             def add_summary(writer, metric, step):
                 for name,value in metric.iteritems():
@@ -110,8 +110,8 @@ def train(sess, model, train_data, dev_data=None, summary_writers={}, tags=None)
             model.train_saver.save(sess, config.model_path, global_step=step)
             
 def main():
-    check_dir(config.summary_dir, config.ask_for_del)
-    check_dir(config.model_dir, config.ask_for_del)
+    check_dir(config.summary_dir, config.ask_for_del, config.restore)
+    check_dir(config.model_dir, config.ask_for_del, config.restore)
     copy("config.py", config.summary_dir) 
     copy("config.py", config.model_dir) 
     
@@ -143,6 +143,13 @@ def main():
             # debug model only work for cnn, tell how much score every ngram contribute to every label
             class_weights=data.class_weights,
             mode='train')
+        if config.restore:
+            try:
+                model.train_saver.restore(sess, config.model_path)
+                print "reload model"
+            except Exception,e:
+                print e
+                print "reload model fail"
         summary_writers = {
             sub_path:tf.summary.FileWriter(os.path.join(config.summary_dir,sub_path), sess.graph, flush_secs=5)
                 for sub_path in ['train','dev']}
@@ -154,8 +161,10 @@ def main():
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--config_path", default=".")
-    parser.add_argument("-r", "--restore", type=bool, default=True)
+    parser.add_argument("-r", "--restore", type=int, default=1)
     args = parser.parse_args()
     global config
     config=load_config(args.config_path)
+    config.restore=args.restore
+    print config.restore
     main()
